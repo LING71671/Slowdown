@@ -1,4 +1,4 @@
-I like gemini3.It can make my ideas real.
+I like gemini3.It can make my ideas come ture.
 
 # Run and deploy your AI Studio app
 
