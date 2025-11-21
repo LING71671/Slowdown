@@ -1,4 +1,5 @@
 I like gemini3.It can make my ideas come ture.
+Additionally,I will complete all the functions later.
 
 # Run and deploy your AI Studio app
 
