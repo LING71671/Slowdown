@@ -1,0 +1,290 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Wind, Sparkles, BookOpen, BrainCircuit } from 'lucide-react';
+import { GameState, Echo, PlayerStats } from './types';
+import { generateSoulEcho } from './services/ai';
+import { Background } from './components/Background';
+import { EchoCard } from './components/EchoCard';
+
+const STORAGE_KEY = 'mindful_echoes_save_v1';
+const FOCUS_COST = 100;
+
+const App: React.FC = () => {
+  // --- State ---
+  const [stats, setStats] = useState<PlayerStats>({
+    focus: 0,
+    maxFocus: 100,
+    level: 1,
+    echoesCollected: 0,
+  });
+  
+  const [collection, setCollection] = useState<Echo[]>([]);
+  const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
+  const [currentEcho, setCurrentEcho] = useState<Echo | null>(null);
+  
+  // Refs for animation intervals if needed, mostly handled by CSS/RAF
+  const clickFeedbackRef = useRef<HTMLDivElement>(null);
+
+  // --- Initialization ---
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setStats(parsed.stats);
+        setCollection(parsed.collection);
+      } catch (e) {
+        console.error("Failed to load save", e);
+      }
+    }
+  }, []);
+
+  // --- Persistence ---
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stats, collection }));
+  }, [stats, collection]);
+
+  // --- Game Loop (Idle Gain) ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (gameState === GameState.IDLE && stats.focus < stats.maxFocus) {
+        setStats(prev => ({
+          ...prev,
+          focus: Math.min(prev.focus + 0.5, prev.maxFocus)
+        }));
+      }
+    }, 1000); // Regenerate slowly
+    return () => clearInterval(interval);
+  }, [gameState, stats.maxFocus]);
+
+  // --- Interactions ---
+  const handleBreathe = (e: React.MouseEvent) => {
+    if (gameState !== GameState.IDLE) return;
+    
+    // Visual Feedback
+    if (clickFeedbackRef.current) {
+      const el = document.createElement('div');
+      el.innerText = "+Focus";
+      el.className = "absolute text-blue-500 font-bold text-sm animate-ping pointer-events-none";
+      el.style.left = `${e.clientX}px`;
+      el.style.top = `${e.clientY - 20}px`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1000);
+    }
+
+    setStats(prev => ({
+      ...prev,
+      focus: Math.min(prev.focus + 5, prev.maxFocus)
+    }));
+  };
+
+  const handleReflect = async () => {
+    if (stats.focus < FOCUS_COST) return;
+
+    setGameState(GameState.GENERATING);
+    setStats(prev => ({ ...prev, focus: prev.focus - FOCUS_COST }));
+
+    try {
+      const data = await generateSoulEcho(stats.level);
+      const newEcho: Echo = {
+        id: crypto.randomUUID(),
+        dateCollected: new Date().toISOString(),
+        ...data
+      };
+
+      setCollection(prev => [newEcho, ...prev]);
+      setCurrentEcho(newEcho);
+      setStats(prev => ({
+        ...prev,
+        level: prev.level + 1, // Simple leveling logic
+        echoesCollected: prev.echoesCollected + 1
+      }));
+      setGameState(GameState.REVEAL);
+    } catch (e) {
+      console.error(e);
+      setGameState(GameState.IDLE);
+    }
+  };
+
+  // --- UI Helpers ---
+  const progressPercent = (stats.focus / stats.maxFocus) * 100;
+  const canReflect = stats.focus >= FOCUS_COST;
+
+  return (
+    <div className="relative min-h-screen font-sans text-slate-800 selection:bg-purple-200">
+      <Background />
+      
+      {/* Header Stats */}
+      <header className="fixed top-0 left-0 right-0 p-4 z-10 flex justify-between items-center backdrop-blur-md bg-white/30 border-b border-white/20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner">
+            <BrainCircuit size={20} />
+          </div>
+          <div>
+            <h1 className="font-bold text-sm text-slate-700 uppercase tracking-wider">Level {stats.level}</h1>
+            <p className="text-xs text-slate-500">Seeker of Calm</p>
+          </div>
+        </div>
+        
+        <button 
+          onClick={() => setGameState(GameState.COLLECTION)}
+          className="flex items-center gap-2 bg-white/50 hover:bg-white px-4 py-2 rounded-full transition-all shadow-sm text-slate-700 text-sm font-medium"
+        >
+          <BookOpen size={16} />
+          <span>Journal ({collection.length})</span>
+        </button>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex flex-col items-center justify-center min-h-screen px-4 pb-20 pt-20">
+        
+        {/* Central Circle Button */}
+        <div className="relative group">
+          {/* Progress Ring Background */}
+          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-blue-200 to-purple-200 opacity-30 blur-xl group-hover:blur-2xl transition-all duration-1000"></div>
+          
+          <button
+            onClick={handleBreathe}
+            disabled={gameState === GameState.GENERATING}
+            className={`
+              relative w-64 h-64 rounded-full flex flex-col items-center justify-center 
+              bg-white shadow-2xl transition-all duration-300 transform
+              ${gameState === GameState.GENERATING ? 'animate-pulse scale-95' : 'hover:scale-105 active:scale-95'}
+              border-8 border-white
+            `}
+            ref={clickFeedbackRef}
+          >
+            {/* SVG Progress Ring */}
+            <svg className="absolute top-0 left-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                fill="none"
+                stroke="#f1f5f9"
+                strokeWidth="4"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="46"
+                fill="none"
+                stroke="#818cf8"
+                strokeWidth="4"
+                strokeDasharray="289"
+                strokeDashoffset={289 - (289 * progressPercent) / 100}
+                className="transition-all duration-500 ease-out"
+                strokeLinecap="round"
+              />
+            </svg>
+
+            <div className="z-10 text-center pointer-events-none select-none p-6">
+              {gameState === GameState.GENERATING ? (
+                <>
+                  <Sparkles className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-2" />
+                  <p className="text-purple-500 font-medium">Listening to the universe...</p>
+                </>
+              ) : (
+                <>
+                  <Wind className="w-12 h-12 text-blue-400 mx-auto mb-2 opacity-80" />
+                  <span className="block text-3xl font-light text-slate-600">Breathe</span>
+                  <span className="text-xs text-slate-400 mt-2 block">Tap to Clear Fog</span>
+                </>
+              )}
+            </div>
+          </button>
+        </div>
+
+        {/* Action Bar */}
+        <div className="mt-12 w-full max-w-md">
+          <div className="flex justify-between text-sm text-slate-500 mb-2 px-2">
+            <span>Mental Clarity</span>
+            <span>{Math.floor(stats.focus)} / {stats.maxFocus}</span>
+          </div>
+          <div className="h-2 bg-white/50 rounded-full overflow-hidden mb-8">
+            <div 
+              className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
+
+          <button
+            onClick={handleReflect}
+            disabled={!canReflect || gameState === GameState.GENERATING}
+            className={`
+              w-full py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg transition-all
+              flex items-center justify-center gap-3
+              ${canReflect 
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:-translate-y-1' 
+                : 'bg-slate-300 cursor-not-allowed grayscale'}
+            `}
+          >
+            <Sparkles size={24} />
+            <span>Find Epiphany</span>
+          </button>
+          <p className="text-center text-xs text-slate-400 mt-3">
+            Requires {FOCUS_COST} Clarity • Unlocks a Soul Echo
+          </p>
+        </div>
+
+      </main>
+
+      {/* Modals */}
+      
+      {/* New Echo Reveal */}
+      {gameState === GameState.REVEAL && currentEcho && (
+        <EchoCard 
+          echo={currentEcho} 
+          isNew={true} 
+          onClose={() => setGameState(GameState.IDLE)} 
+        />
+      )}
+
+      {/* Collection View */}
+      {gameState === GameState.COLLECTION && (
+        <div className="fixed inset-0 z-40 bg-slate-50 backdrop-blur-md overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="flex justify-between items-center mb-8 sticky top-0 bg-slate-50/90 py-4 backdrop-blur-sm z-10">
+              <h2 className="text-3xl font-bold text-slate-800 font-serif">Your Journal</h2>
+              <button 
+                onClick={() => setGameState(GameState.IDLE)}
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-full text-slate-700 font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {collection.length === 0 ? (
+                <div className="col-span-full text-center py-20 text-slate-400">
+                  <p>No echoes found yet.</p>
+                  <p className="text-sm">Breathe, focus, and find your first epiphany.</p>
+                </div>
+              ) : (
+                collection.map((echo) => (
+                  <div 
+                    key={echo.id}
+                    onClick={() => {
+                      setCurrentEcho(echo);
+                      setGameState(GameState.REVEAL);
+                    }}
+                    className={`cursor-pointer group relative p-6 rounded-2xl ${echo.color} border border-white/50 hover:shadow-xl transition-all hover:-translate-y-1`}
+                  >
+                    <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">{echo.icon}</div>
+                    <h3 className="font-bold text-slate-800 mb-1">{echo.title}</h3>
+                    <p className="text-sm text-slate-600 line-clamp-2">{echo.description}</p>
+                    <div className="mt-4 flex justify-between items-center text-xs text-slate-500 opacity-60">
+                      <span>{echo.rarity}</span>
+                      <span>{new Date(echo.dateCollected).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default App;
