@@ -2,7 +2,14 @@ import { GoogleGenAI, Type, LiveServerMessage, Modality } from "@google/genai";
 import { Echo } from '../types';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lazily initialize the AI client to prevent startup crashes.
+let ai: GoogleGenAI | null = null;
+const getAiClient = () => {
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  }
+  return ai;
+};
 
 export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 'id' | 'dateCollected'>> => {
   const prompt = `
@@ -15,7 +22,8 @@ export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const client = getAiClient();
+    const response = await client.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
       config: {
@@ -65,7 +73,8 @@ export const startVoiceSession = (
   systemInstruction: string,
   callbacks: VoiceSessionCallbacks
 ) => {
-  return ai.live.connect({
+  const client = getAiClient();
+  return client.live.connect({
     model: 'gemini-2.5-flash-native-audio-preview-09-2025',
     callbacks: {
       onopen: callbacks.onOpen,
