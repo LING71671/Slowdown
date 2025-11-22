@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LiveServerMessage } from '@google/genai';
-import { X, Mic, Volume2, KeyRound } from 'lucide-react';
+import { X, Mic, Volume2 } from 'lucide-react';
 // FIX: Correctly import all necessary functions from the services/ai module.
 import { startVoiceSession, decode, decodeAudioData, createBlob } from '../services/ai';
 // FIX: Correctly import TranscriptEntry from types.
@@ -15,11 +15,9 @@ interface ConversationViewProps {
 }
 
 type ConnectionState = 'connecting' | 'connected' | 'error' | 'closed';
-type ApiKeyStatus = 'checking' | 'present' | 'missing';
 
 export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) => {
   const { t } = useTranslation();
-  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>('checking');
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -84,10 +82,6 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
         },
         onerror: (e) => {
           console.error('Session error', e);
-          // FIX: Per guidelines, reset API key status on auth error to re-prompt the user.
-          if ((e as ErrorEvent).message?.includes('Requested entity was not found')) {
-            setApiKeyStatus('missing');
-          }
           setConnectionState('error');
         },
         onclose: () => {
@@ -98,45 +92,17 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
 
       sessionPromiseRef.current.catch(err => {
           console.error("Failed to establish voice session:", err);
-          // FIX: Per guidelines, reset API key status on auth error to re-prompt the user.
-          if (err instanceof Error && err.message.includes('Requested entity was not found')) {
-            setApiKeyStatus('missing');
-          }
           setConnectionState('error');
       });
   }, [t, cleanup]);
 
   useEffect(() => {
-    const checkApiKey = async () => {
-      if (window.aistudio && await window.aistudio.hasSelectedApiKey()) {
-        setApiKeyStatus('present');
-      } else {
-        setApiKeyStatus('missing');
-      }
-    };
-    checkApiKey();
-  }, []);
-
-  useEffect(() => {
-    if (apiKeyStatus === 'present') {
-      initiateSession();
-    }
-    // This effect should only run when the API key status changes to 'present'.
-    // The initiateSession function is wrapped in useCallback to be stable.
-  }, [apiKeyStatus, initiateSession]);
-
-  useEffect(() => {
+    initiateSession();
     // Final cleanup on component unmount
     return () => {
       cleanup();
     };
-  }, [cleanup]);
-  
-  const handleSelectKey = async () => {
-      await window.aistudio.openSelectKey();
-      // Per platform guidelines, assume success and attempt to connect.
-      setApiKeyStatus('present');
-  };
+  }, [initiateSession, cleanup]);
 
   const processAudioMessage = async (message: LiveServerMessage) => {
     const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
@@ -224,31 +190,13 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
               ? <Volume2 size={32} className="text-blue-400" />
               : <Mic size={32} className="text-green-400 animate-pulse" />;
         case 'error':
-            return <div className="text-sm text-red-500 text-center">Connection Error.<br/>Please ensure your selected API key is valid and from a project with billing enabled.</div>;
+            return <div className="text-sm text-red-500 text-center">Connection Error.<br/>Please try again later.</div>;
         case 'closed':
              return <div className="text-sm text-slate-400">Connection Closed</div>;
     }
   }
   
   const renderContent = () => {
-      if (apiKeyStatus === 'checking') {
-          return <p className="text-slate-500">Checking API Key...</p>;
-      }
-      if (apiKeyStatus === 'missing') {
-          return (
-              <div className="text-center">
-                  <KeyRound size={32} className="text-yellow-500 mx-auto mb-2" />
-                  <h2 className="font-bold text-slate-700">API Key Required</h2>
-                  <p className="text-xs text-slate-500 mt-2 mb-4 max-w-xs">
-                      This feature requires a Gemini API key from a Google Cloud project with billing enabled.
-                      <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline"> Learn More</a>
-                  </p>
-                  <button onClick={handleSelectKey} className="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors">
-                      Select API Key
-                  </button>
-              </div>
-          );
-      }
       return (
          <div className="text-center flex flex-col items-center justify-center">
             <h2 className="font-bold text-slate-700">{t('guideTitle')}</h2>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Wind, Sparkles, BookOpen, BrainCircuit, Music, Music2, Globe, Maximize, Minimize, KeyRound } from 'lucide-react';
+import { Wind, Sparkles, BookOpen, BrainCircuit, Music, Music2, Globe, Maximize, Minimize } from 'lucide-react';
 import { GameState, Echo, PlayerStats, Language } from './types';
 import { generateSoulEcho } from './services/ai';
 import { Background } from './components/Background';
@@ -12,9 +12,8 @@ import { playGlimmerSound } from './utils/audio';
 const STORAGE_KEY = 'mindful_echoes_save_v1';
 const FOCUS_COST = 100;
 // A short, silent, looping base64 encoded mp3 for ambient music
-const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
 
-type ApiKeyStatus = 'checking' | 'present' | 'missing';
 
 const App: React.FC = () => {
   const { t, lang, setLang } = useTranslation();
@@ -33,8 +32,6 @@ const App: React.FC = () => {
   const [isMusicOn, setIsMusicOn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isConversing, setIsConversing] = useState(false);
-  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>('checking');
-  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -49,21 +46,6 @@ const App: React.FC = () => {
         if (parsed.lang) setLang(parsed.lang);
       } catch (e) { console.error("Failed to load save", e); }
     }
-
-    const checkApiKey = async () => {
-      // Ensure window.aistudio is available before calling it
-      if (window.aistudio) {
-        if (await window.aistudio.hasSelectedApiKey()) {
-          setApiKeyStatus('present');
-        } else {
-          setApiKeyStatus('missing');
-        }
-      } else {
-        // Retry if aistudio is not immediately available
-        setTimeout(checkApiKey, 200);
-      }
-    };
-    checkApiKey();
   }, [setLang]);
 
   useEffect(() => {
@@ -107,27 +89,15 @@ const App: React.FC = () => {
     setGameState(GameState.GENERATING);
     setStats(prev => ({ ...prev, focus: prev.focus - FOCUS_COST }));
 
-    try {
-      const data = await generateSoulEcho(stats.level);
-      
-      // The API call returns a fallback on error. If we get the fallback, it means something went wrong.
-      if (data.title === "Quiet Moment") {
-        throw new Error("AI returned fallback data, indicating a possible API key or network issue.");
-      }
-      
-      const newEcho: Echo = { id: crypto.randomUUID(), dateCollected: new Date().toISOString(), ...data };
+    // Error handling is done inside generateSoulEcho, which returns a fallback
+    const data = await generateSoulEcho(stats.level);
+    
+    const newEcho: Echo = { id: crypto.randomUUID(), dateCollected: new Date().toISOString(), ...data };
 
-      setCollection(prev => [newEcho, ...prev]);
-      setCurrentEcho(newEcho);
-      setStats(prev => ({ ...prev, level: prev.level + 1, echoesCollected: prev.echoesCollected + 1 }));
-      setGameState(GameState.REVEAL);
-    } catch (e) {
-      console.error("Reflection Error:", e);
-      alert("There was an error generating your Soul Echo. It's likely an issue with your selected API key. Please ensure it's from a project with billing enabled and try again.");
-      // If the API call fails, assume the key is invalid and prompt the user to select one again.
-      setApiKeyStatus('missing');
-      setGameState(GameState.IDLE); // Reset game state to allow another attempt
-    }
+    setCollection(prev => [newEcho, ...prev]);
+    setCurrentEcho(newEcho);
+    setStats(prev => ({ ...prev, level: prev.level + 1, echoesCollected: prev.echoesCollected + 1 }));
+    setGameState(GameState.REVEAL);
   };
 
   // --- Interactions ---
@@ -135,15 +105,6 @@ const App: React.FC = () => {
     if (gameState !== GameState.IDLE) return;
     playGlimmerSound();
     setStats(prev => ({ ...prev, focus: Math.min(prev.focus + 5, prev.maxFocus) }));
-  };
-
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-        await window.aistudio.openSelectKey();
-        // Per platform guidelines, assume success after the dialog is closed.
-        setApiKeyStatus('present');
-        setIsApiKeyModalOpen(false);
-    }
   };
 
   const toggleLanguage = () => setLang(lang === 'en' ? 'zh' : 'en');
@@ -163,56 +124,28 @@ const App: React.FC = () => {
   const progressPercent = (stats.focus / stats.maxFocus) * 100;
   const canReflect = stats.focus >= FOCUS_COST;
 
-  const ApiKeyModal = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-sm p-6 text-center bg-white rounded-2xl shadow-lg">
-        <KeyRound size={32} className="mx-auto mb-4 text-yellow-500" />
-        <h2 className="text-xl font-bold text-slate-800">API Key Required</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          To generate unique "Soul Echoes", this app needs a Gemini API key from a Google Cloud project with billing enabled.
-          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline"> Learn More</a>
-        </p>
-        <div className="mt-6 space-y-2">
-           <button 
-             onClick={handleSelectKey} 
-             className="w-full px-4 py-2 font-semibold text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors">
-               Select API Key
-           </button>
-           <button 
-             onClick={() => setIsApiKeyModalOpen(false)} 
-             className="w-full px-4 py-2 font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
-               Cancel
-           </button>
-        </div>
-      </div>
-    </div>
+  const renderReflectButton = () => (
+    <button
+      onClick={reflectLogic}
+      disabled={!canReflect || gameState === GameState.GENERATING}
+      className={`w-full py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg transition-all flex items-center justify-center gap-3 ${
+        canReflect && gameState !== GameState.GENERATING
+          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:-translate-y-1'
+          : 'bg-slate-300 cursor-not-allowed grayscale'
+      }`}
+    >
+      {gameState === GameState.GENERATING ? (
+        <Sparkles size={24} className="animate-spin" />
+      ) : (
+        <Sparkles size={24} />
+      )}
+      <span>
+        {gameState === GameState.GENERATING
+          ? t('listeningToUniverse')
+          : t('findEpiphany')}
+      </span>
+    </button>
   );
-  
-  const renderReflectButton = () => {
-    switch (apiKeyStatus) {
-        case 'checking':
-            return (
-                <button disabled className="w-full py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg flex items-center justify-center gap-3 bg-slate-300 cursor-not-allowed">
-                    <Sparkles size={24} className="animate-spin" />
-                    <span>Checking Key...</span>
-                </button>
-            );
-        case 'missing':
-            return (
-                <button onClick={() => setIsApiKeyModalOpen(true)} className="w-full py-4 rounded-xl text-yellow-800 font-bold text-lg tracking-wide shadow-lg flex items-center justify-center gap-3 bg-gradient-to-r from-yellow-400 to-amber-500 hover:shadow-yellow-500/30 hover:-translate-y-1">
-                    <KeyRound size={24} />
-                    <span>Setup API Key</span>
-                </button>
-            );
-        case 'present':
-            return (
-                <button onClick={reflectLogic} disabled={!canReflect || gameState === GameState.GENERATING} className={`w-full py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg transition-all flex items-center justify-center gap-3 ${canReflect ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:-translate-y-1' : 'bg-slate-300 cursor-not-allowed grayscale'}`}>
-                    <Sparkles size={24} />
-                    <span>{t('findEpiphany')}</span>
-                </button>
-            );
-    }
-  };
 
   return (
     <div className="relative min-h-screen font-sans text-slate-800 selection:bg-purple-200">
@@ -284,11 +217,10 @@ const App: React.FC = () => {
             <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-300" style={{ width: `${progressPercent}%` }}></div>
           </div>
           {renderReflectButton()}
-          {apiKeyStatus === 'present' && <p className="text-center text-xs text-slate-400 mt-3">{t('requiresClarity', {cost: FOCUS_COST})}</p>}
+          <p className="text-center text-xs text-slate-400 mt-3">{t('requiresClarity', {cost: FOCUS_COST})}</p>
         </div>
       </main>
 
-      {isApiKeyModalOpen && <ApiKeyModal />}
       {isConversing && <ConversationView onClose={() => setIsConversing(false)} />}
 
       {gameState === GameState.REVEAL && currentEcho && (<EchoCard echo={currentEcho} isNew={true} onClose={() => setGameState(GameState.IDLE)} />)}

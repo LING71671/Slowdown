@@ -17,6 +17,44 @@ const createAiClient = (): GoogleGenAI => {
   }
 };
 
+const fallbackEchoes: Omit<Echo, 'id' | 'dateCollected'>[] = [
+    {
+      title: "Quiet Moment",
+      description: "Sometimes, silence is the loudest answer you need.",
+      icon: "🍃",
+      color: "bg-green-100",
+      rarity: "Common"
+    },
+    {
+      title: "Stream of Patience",
+      description: "A river cuts through rock, not because of its power, but its persistence.",
+      icon: "💧",
+      color: "bg-blue-100",
+      rarity: "Common"
+    },
+    {
+      title: "Feather of Letting Go",
+      description: "Allow your worries to be as light as a feather, and let the wind carry them away.",
+      icon: "🪶",
+      color: "bg-gray-100",
+      rarity: "Common"
+    },
+    {
+      title: "Seed of Potential",
+      description: "Within you is the strength and resilience of a mighty tree, waiting to grow.",
+      icon: "🌱",
+      color: "bg-emerald-100",
+      rarity: "Common"
+    },
+    {
+      title: "Whisper of Courage",
+      description: "Courage doesn't always roar. Sometimes it's the quiet voice at the end of the day that says 'I will try again tomorrow'.",
+      icon: "💬",
+      color: "bg-rose-100",
+      rarity: "Rare"
+    }
+];
+
 export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 'id' | 'dateCollected'>> => {
   const prompt = `
     You are a wise psychological guide in a relaxation game. 
@@ -54,14 +92,8 @@ export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 
     return JSON.parse(text) as Omit<Echo, 'id' | 'dateCollected'>;
   } catch (error) {
     console.error("AI Generation Error:", error);
-    // Fallback if AI fails
-    return {
-      title: "Quiet Moment",
-      description: "Sometimes, silence is the loudest answer you need.",
-      icon: "🍃",
-      color: "bg-green-100",
-      rarity: "Common"
-    };
+    // Fallback if AI fails, return a random pre-written echo
+    return fallbackEchoes[Math.floor(Math.random() * fallbackEchoes.length)];
   }
 };
 
