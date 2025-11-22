@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Wind, Sparkles, BookOpen, BrainCircuit, Mic, Music, Music2, Globe } from 'lucide-react';
+import { Wind, Sparkles, BookOpen, BrainCircuit, Mic, Music, Music2, Globe, Maximize, Minimize } from 'lucide-react';
 import { GameState, Echo, PlayerStats, Language } from './types';
 import { generateSoulEcho } from './services/ai';
 import { Background } from './components/Background';
@@ -12,7 +12,7 @@ import { playGlimmerSound } from './utils/audio';
 const STORAGE_KEY = 'mindful_echoes_save_v1';
 const FOCUS_COST = 100;
 // A short, silent, looping base64 encoded mp3 for ambient music
-const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
 
 const App: React.FC = () => {
   const { t, lang, setLang } = useTranslation();
@@ -29,6 +29,7 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(GameState.IDLE);
   const [currentEcho, setCurrentEcho] = useState<Echo | null>(null);
   const [isMusicOn, setIsMusicOn] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -69,6 +70,15 @@ const App: React.FC = () => {
         }
     }
   }, [isMusicOn]);
+  
+    // --- Fullscreen Control ---
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   // --- Interactions ---
   const handleBreathe = () => {
@@ -99,6 +109,16 @@ const App: React.FC = () => {
 
   const toggleLanguage = () => setLang(lang === 'en' ? 'zh' : 'en');
   const toggleMusic = () => setIsMusicOn(prev => !prev);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
 
   // --- UI Helpers ---
   const progressPercent = (stats.focus / stats.maxFocus) * 100;
@@ -130,6 +150,9 @@ const App: React.FC = () => {
             </button>
             <button onClick={toggleLanguage} className="p-2 bg-white/50 hover:bg-white rounded-full transition-all shadow-sm text-slate-700">
                 <Globe size={16} />
+            </button>
+            <button onClick={toggleFullscreen} className="p-2 bg-white/50 hover:bg-white rounded-full transition-all shadow-sm text-slate-700">
+              {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
             </button>
             <button 
                 onClick={() => setGameState(GameState.COLLECTION)}
