@@ -2,7 +2,8 @@ export enum GameState {
   IDLE = 'IDLE',
   GENERATING = 'GENERATING',
   REVEAL = 'REVEAL',
-  COLLECTION = 'COLLECTION'
+  COLLECTION = 'COLLECTION',
+  CONVERSING = 'CONVERSING'
 }
 
 export interface Echo {
@@ -20,4 +21,13 @@ export interface PlayerStats {
   level: number;
   maxFocus: number;
   echoesCollected: number;
+}
+
+export type Language = 'en' | 'zh';
+
+export interface TranscriptEntry {
+  id: string;
+  speaker: 'user' | 'ai';
+  text: string;
+  isFinal: boolean;
 }

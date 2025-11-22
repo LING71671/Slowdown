@@ -1,13 +1,10 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, LiveServerMessage, Modality } from "@google/genai";
 import { Echo } from '../types';
+import { createBlob, decode, decodeAudioData } from '../utils/audio';
 
-// We wrap this in a function to ensure we use the latest env key if needed,
-// though typically process.env is static in this context.
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 'id' | 'dateCollected'>> => {
-  const ai = getAI();
-  
   const prompt = `
     You are a wise psychological guide in a relaxation game. 
     Generate a unique "Soul Echo" - a metaphorical item that represents a piece of wisdom or a calming thought for a busy, stressed modern person.
@@ -53,3 +50,39 @@ export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 
     };
   }
 };
+
+
+// --- Live API for Voice Conversation ---
+
+interface VoiceSessionCallbacks {
+  onMessage: (message: LiveServerMessage) => Promise<void>;
+  onOpen: () => void;
+  onError: (error: ErrorEvent) => void;
+  onClose: (event: CloseEvent) => void;
+}
+
+export const startVoiceSession = (
+  systemInstruction: string,
+  callbacks: VoiceSessionCallbacks
+) => {
+  return ai.live.connect({
+    model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+    callbacks: {
+      onopen: callbacks.onOpen,
+      onmessage: callbacks.onMessage,
+      onerror: callbacks.onError,
+      onclose: callbacks.onClose,
+    },
+    config: {
+      responseModalities: [Modality.AUDIO],
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+      },
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
+      systemInstruction,
+    },
+  });
+};
+
+export { decode, decodeAudioData, createBlob };

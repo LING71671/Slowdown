@@ -1,5 +1,6 @@
-I like gemini3.It can make my ideas come ture.
-Additionally,I will complete all the functions later.
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
 # Run and deploy your AI Studio app
 

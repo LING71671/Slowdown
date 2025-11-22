@@ -1,6 +1,7 @@
 import React from 'react';
 import { Echo } from '../types';
 import { Share2, X } from 'lucide-react';
+import { useTranslation } from '../hooks/useTranslation';
 
 interface EchoCardProps {
   echo: Echo;
@@ -8,11 +9,20 @@ interface EchoCardProps {
   isNew?: boolean;
 }
 
+const rarityStyles: Record<Echo['rarity'], string> = {
+  Common: 'bg-gray-200 text-gray-800',
+  Rare: 'bg-blue-200 text-blue-800',
+  Epic: 'bg-purple-200 text-purple-800',
+  Legendary: 'bg-yellow-200 text-yellow-800'
+};
+
 export const EchoCard: React.FC<EchoCardProps> = ({ echo, onClose, isNew = false }) => {
+  const { t } = useTranslation();
+
   const handleShare = () => {
     const text = `I found "${echo.title}" in Mindful Echoes: ${echo.description}`;
     navigator.clipboard.writeText(text);
-    alert("Copied to clipboard!");
+    alert(t('copied'));
   };
 
   return (
@@ -27,7 +37,7 @@ export const EchoCard: React.FC<EchoCardProps> = ({ echo, onClose, isNew = false
 
         {isNew && (
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">
-            New Discovery
+            {t('newDiscovery')}
           </div>
         )}
 
@@ -40,12 +50,7 @@ export const EchoCard: React.FC<EchoCardProps> = ({ echo, onClose, isNew = false
             <h2 className="text-3xl font-serif font-bold text-gray-800 tracking-wide">
               {echo.title}
             </h2>
-            <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border border-gray-400/30 text-gray-600
-              ${echo.rarity === 'Legendary' ? 'bg-yellow-200 text-yellow-800' : ''}
-              ${echo.rarity === 'Epic' ? 'bg-purple-200 text-purple-800' : ''}
-              ${echo.rarity === 'Rare' ? 'bg-blue-200 text-blue-800' : ''}
-              ${echo.rarity === 'Common' ? 'bg-gray-200 text-gray-800' : ''}
-            `}>
+            <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full border border-gray-400/30 ${rarityStyles[echo.rarity]}`}>
               {echo.rarity}
             </span>
           </div>
@@ -59,7 +64,7 @@ export const EchoCard: React.FC<EchoCardProps> = ({ echo, onClose, isNew = false
             className="flex items-center gap-2 px-6 py-3 mt-4 bg-white/80 hover:bg-white text-gray-800 rounded-xl font-medium shadow-sm hover:shadow-md transition-all"
           >
             <Share2 size={18} />
-            <span>Share Wisdom</span>
+            <span>{t('shareWisdom')}</span>
           </button>
         </div>
       </div>
