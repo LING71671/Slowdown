@@ -1,4 +1,5 @@
-import { GoogleGenAI, Type, Blob, LiveCallbacks, LiveSession, Modality } from "@google/genai";
+// FIX: Removed non-exported member 'LiveSession' from import.
+import { GoogleGenAI, Type, Blob, LiveCallbacks, Modality } from "@google/genai";
 import { Echo } from '../types';
 
 // Creates a new AI client instance.
@@ -121,7 +122,8 @@ export function createBlob(data: Float32Array): Blob {
 }
 
 // FIX: Implement and export startVoiceSession to connect to the Live API.
-export const startVoiceSession = (systemInstruction: string, callbacks: LiveCallbacks): Promise<LiveSession> => {
+// FIX: Changed return type from Promise<LiveSession> to Promise<any> as LiveSession is not an exported type.
+export const startVoiceSession = (systemInstruction: string, callbacks: LiveCallbacks): Promise<any> => {
   const client = createAiClient();
   return client.live.connect({
     model: 'gemini-2.5-flash-native-audio-preview-09-2025',

@@ -7,15 +7,8 @@ import { startVoiceSession, decode, decodeAudioData, createBlob } from '../servi
 import { TranscriptEntry } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 
-// FIX: Correct the window.aistudio global declaration to prevent type conflicts.
-declare global {
-  interface Window {
-    aistudio: {
-      hasSelectedApiKey: () => Promise<boolean>;
-      openSelectKey: () => Promise<void>;
-    };
-  }
-}
+// FIX: Removed conflicting global declaration for window.aistudio. 
+// The type is likely provided by a global .d.ts file.
 
 interface ConversationViewProps {
   onClose: () => void;
@@ -61,8 +54,9 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
       // Ensure any previous session is cleaned up before starting a new one
       cleanup();
 
+      // FIX: Corrected callback property names to be lowercase (e.g., onOpen -> onopen) to match the 'LiveCallbacks' type.
       sessionPromiseRef.current = startVoiceSession(t('systemInstruction'), {
-        onOpen: () => {
+        onopen: () => {
           setConnectionState('connected');
           navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
@@ -84,11 +78,11 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
               setConnectionState('error');
             });
         },
-        onMessage: async (message) => {
+        onmessage: async (message) => {
           processTranscriptMessage(message);
           await processAudioMessage(message);
         },
-        onError: (e) => {
+        onerror: (e) => {
           console.error('Session error', e);
           // FIX: Per guidelines, reset API key status on auth error to re-prompt the user.
           if ((e as ErrorEvent).message?.includes('Requested entity was not found')) {
@@ -96,7 +90,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
           }
           setConnectionState('error');
         },
-        onClose: () => {
+        onclose: () => {
           setConnectionState('closed');
           cleanup();
         },
