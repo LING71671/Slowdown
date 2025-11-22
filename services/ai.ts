@@ -4,9 +4,21 @@ import { createBlob, decode, decodeAudioData } from '../utils/audio';
 
 // Lazily initialize the AI client to prevent startup crashes.
 let ai: GoogleGenAI | null = null;
-const getAiClient = () => {
+let aiInitializationError: Error | null = null;
+
+const getAiClient = (): GoogleGenAI => {
+  if (aiInitializationError) {
+    throw aiInitializationError;
+  }
   if (!ai) {
-    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    try {
+      // This will fail if process.env.API_KEY is not available in the browser.
+      ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    } catch (error) {
+      console.error("FATAL: Failed to initialize GoogleGenAI. Ensure the API_KEY is correctly set in your environment and exposed to the client-side build.", error);
+      aiInitializationError = new Error("AI Service could not be initialized. Please verify your API key configuration and ensure it's accessible to the application.");
+      throw aiInitializationError;
+    }
   }
   return ai;
 };
@@ -73,25 +85,31 @@ export const startVoiceSession = (
   systemInstruction: string,
   callbacks: VoiceSessionCallbacks
 ) => {
-  const client = getAiClient();
-  return client.live.connect({
-    model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-    callbacks: {
-      onopen: callbacks.onOpen,
-      onmessage: callbacks.onMessage,
-      onerror: callbacks.onError,
-      onclose: callbacks.onClose,
-    },
-    config: {
-      responseModalities: [Modality.AUDIO],
-      speechConfig: {
-        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+  try {
+    const client = getAiClient();
+    return client.live.connect({
+      model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+      callbacks: {
+        onopen: callbacks.onOpen,
+        onmessage: callbacks.onMessage,
+        onerror: callbacks.onError,
+        onclose: callbacks.onClose,
       },
-      inputAudioTranscription: {},
-      outputAudioTranscription: {},
-      systemInstruction,
-    },
-  });
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+        },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+        systemInstruction,
+      },
+    });
+  } catch (error) {
+    // If getAiClient throws, we catch it here and return a rejected promise
+    // to be handled by the calling component (ConversationView).
+    return Promise.reject(error);
+  }
 };
 
 export { decode, decodeAudioData, createBlob };

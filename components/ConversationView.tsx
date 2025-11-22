@@ -169,6 +169,12 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
       },
     });
 
+    // Handle the case where startVoiceSession itself fails (e.g., API key issue).
+    sessionPromiseRef.current.catch(err => {
+        console.error("Failed to establish voice session:", err);
+        setConnectionState('error');
+    });
+
     return () => {
       cleanup();
     };
