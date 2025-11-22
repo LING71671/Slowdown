@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-// FIX: Remove `LiveSession` as it is not an exported member.
 import { LiveServerMessage } from '@google/genai';
 import { X, Mic, Volume2 } from 'lucide-react';
 import { startVoiceSession, decode, decodeAudioData, createBlob } from '../services/ai';
@@ -18,7 +17,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // FIX: Use `ReturnType` to infer the session promise type without importing `LiveSession`.
+  // Use `ReturnType` to infer the session promise type without importing `LiveSession`.
   const sessionPromiseRef = useRef<ReturnType<typeof startVoiceSession> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -66,35 +65,46 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
 
   const processTranscriptMessage = (message: LiveServerMessage) => {
     setTranscript(prev => {
-      let newTranscript = [...prev];
-      if (message.serverContent?.inputTranscription) {
-        // FIX: The `Transcription` object does not have an `isFinal` property.
-        const { text } = message.serverContent.inputTranscription;
+      const newTranscript = [...prev];
+
+      const processEntry = (speaker: 'user' | 'ai', text: string) => {
         const lastEntry = newTranscript[newTranscript.length - 1];
-        if (lastEntry && lastEntry.speaker === 'user' && !lastEntry.isFinal) {
-          lastEntry.text += text;
+        if (lastEntry?.speaker === speaker && !lastEntry.isFinal) {
+          // Continuation of the last entry: create a new object to avoid mutation.
+          newTranscript[newTranscript.length - 1] = {
+            ...lastEntry,
+            text: lastEntry.text + text,
+          };
         } else {
-          // FIX: Set `isFinal` to `false` for new entries. `turnComplete` will mark it as final.
-          newTranscript.push({ id: crypto.randomUUID(), speaker: 'user', text, isFinal: false });
+          // A new entry.
+          newTranscript.push({
+            id: crypto.randomUUID(),
+            speaker,
+            text,
+            isFinal: false,
+          });
+        }
+      };
+
+      if (message.serverContent?.inputTranscription?.text) {
+        processEntry('user', message.serverContent.inputTranscription.text);
+      }
+      
+      if (message.serverContent?.outputTranscription?.text) {
+        processEntry('ai', message.serverContent.outputTranscription.text);
+      }
+
+      if (message.serverContent?.turnComplete) {
+        const lastEntry = newTranscript[newTranscript.length - 1];
+        if (lastEntry && !lastEntry.isFinal) {
+           // Mark the last entry as final by creating a new object.
+          newTranscript[newTranscript.length - 1] = {
+            ...lastEntry,
+            isFinal: true,
+          };
         }
       }
-      if (message.serverContent?.outputTranscription) {
-        // FIX: The `Transcription` object does not have an `isFinal` property.
-        const { text } = message.serverContent.outputTranscription;
-        const lastEntry = newTranscript[newTranscript.length - 1];
-        if (lastEntry && lastEntry.speaker === 'ai' && !lastEntry.isFinal) {
-          lastEntry.text += text;
-        } else {
-          // FIX: Set `isFinal` to `false` for new entries. `turnComplete` will mark it as final.
-          newTranscript.push({ id: crypto.randomUUID(), speaker: 'ai', text, isFinal: false });
-        }
-      }
-       if (message.serverContent?.turnComplete) {
-         // Finalize the last entry if needed
-         if (newTranscript.length > 0) {
-           newTranscript[newTranscript.length-1].isFinal = true;
-         }
-       }
+      
       return newTranscript;
     });
   };
