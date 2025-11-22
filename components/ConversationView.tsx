@@ -1,19 +1,19 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { LiveServerMessage } from '@google/genai';
 import { X, Mic, Volume2, KeyRound } from 'lucide-react';
+// FIX: Correctly import all necessary functions from the services/ai module.
 import { startVoiceSession, decode, decodeAudioData, createBlob } from '../services/ai';
+// FIX: Correctly import TranscriptEntry from types.
 import { TranscriptEntry } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
 
-// FIX: Change declaration of window.aistudio to use a named interface `AIStudio`
-// to solve TypeScript declaration conflict error.
+// FIX: Correct the window.aistudio global declaration to prevent type conflicts.
 declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
   interface Window {
-    aistudio: AIStudio;
+    aistudio: {
+      hasSelectedApiKey: () => Promise<boolean>;
+      openSelectKey: () => Promise<void>;
+    };
   }
 }
 
@@ -91,7 +91,7 @@ export const ConversationView: React.FC<ConversationViewProps> = ({ onClose }) =
         onError: (e) => {
           console.error('Session error', e);
           // FIX: Per guidelines, reset API key status on auth error to re-prompt the user.
-          if (e.message?.includes('Requested entity was not found')) {
+          if ((e as ErrorEvent).message?.includes('Requested entity was not found')) {
             setApiKeyStatus('missing');
           }
           setConnectionState('error');

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Wind, Sparkles, BookOpen, BrainCircuit, Mic, Music, Music2, Globe, Maximize, Minimize } from 'lucide-react';
+import { Wind, Sparkles, BookOpen, BrainCircuit, Music, Music2, Globe, Maximize, Minimize } from 'lucide-react';
 import { GameState, Echo, PlayerStats, Language } from './types';
 import { generateSoulEcho } from './services/ai';
 import { Background } from './components/Background';
 import { EchoCard } from './components/EchoCard';
+// FIX: Import ConversationView.
 import { ConversationView } from './components/ConversationView';
 import { useTranslation } from './hooks/useTranslation';
 import { playGlimmerSound } from './utils/audio';
@@ -12,7 +13,7 @@ import { playGlimmerSound } from './utils/audio';
 const STORAGE_KEY = 'mindful_echoes_save_v1';
 const FOCUS_COST = 100;
 // A short, silent, looping base64 encoded mp3 for ambient music
-const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
+const AMBIENT_MUSIC_SRC = "data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSUNSAAAACgAAADNOZXcgWXVsaWEgVExFTgAAAA8AAAAAMzc3ODU5ODg5MDI3NDk3AE9OTAAAADMAAAAdVGhpc0F1ZGlvSXNGcmVlR2VuZXJhdGVkAAAAAABUNLZAAAAA8AAAAnNpbmcgSW5mbwAAAnAA/+AUgAAAAANIAAAAAExBTUUzLjk5LjVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV";
 
 const App: React.FC = () => {
   const { t, lang, setLang } = useTranslation();
@@ -30,6 +31,8 @@ const App: React.FC = () => {
   const [currentEcho, setCurrentEcho] = useState<Echo | null>(null);
   const [isMusicOn, setIsMusicOn] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  // FIX: Add state to manage the conversation view.
+  const [isConversing, setIsConversing] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -44,7 +47,7 @@ const App: React.FC = () => {
         if (parsed.lang) setLang(parsed.lang);
       } catch (e) { console.error("Failed to load save", e); }
     }
-  }, []);
+  }, [setLang]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ stats, collection, lang, music: isMusicOn }));
@@ -123,10 +126,6 @@ const App: React.FC = () => {
   // --- UI Helpers ---
   const progressPercent = (stats.focus / stats.maxFocus) * 100;
   const canReflect = stats.focus >= FOCUS_COST;
-
-  if (gameState === GameState.CONVERSING) {
-    return <ConversationView onClose={() => setGameState(GameState.IDLE)} />;
-  }
   
   return (
     <div className="relative min-h-screen font-sans text-slate-800 selection:bg-purple-200">
@@ -135,9 +134,10 @@ const App: React.FC = () => {
       
       <header className="fixed top-0 left-0 right-0 p-4 z-10 flex justify-between items-center backdrop-blur-md bg-white/30 border-b border-white/20">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner">
+          {/* FIX: Make the BrainCircuit icon a button to open the conversation view. */}
+          <button onClick={() => setIsConversing(true)} className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-inner hover:bg-indigo-200 transition-colors">
             <BrainCircuit size={20} />
-          </div>
+          </button>
           <div>
             <h1 className="font-bold text-sm text-slate-700 uppercase tracking-wider">{t('level')} {stats.level}</h1>
             <p className="text-xs text-slate-500">{t('seekerOfCalm')}</p>
@@ -197,19 +197,16 @@ const App: React.FC = () => {
           <div className="h-2 bg-white/50 rounded-full overflow-hidden mb-6">
             <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-300" style={{ width: `${progressPercent}%` }}></div>
           </div>
-          <div className="flex gap-3">
-              <button onClick={() => setGameState(GameState.CONVERSING)} className="flex-1 py-4 rounded-xl bg-white/80 hover:bg-white text-slate-700 font-bold text-lg tracking-wide shadow-lg transition-all flex items-center justify-center gap-3 hover:-translate-y-1">
-                  <Mic size={24} />
-                  <span>{t('talkToGuide')}</span>
-              </button>
-              <button onClick={handleReflect} disabled={!canReflect || gameState === GameState.GENERATING} className={`flex-1 py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg transition-all flex items-center justify-center gap-3 ${canReflect ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:-translate-y-1' : 'bg-slate-300 cursor-not-allowed grayscale'}`}>
-                  <Sparkles size={24} />
-                  <span>{t('findEpiphany')}</span>
-              </button>
-          </div>
+          <button onClick={handleReflect} disabled={!canReflect || gameState === GameState.GENERATING} className={`w-full py-4 rounded-xl text-white font-bold text-lg tracking-wide shadow-lg transition-all flex items-center justify-center gap-3 ${canReflect ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:-translate-y-1' : 'bg-slate-300 cursor-not-allowed grayscale'}`}>
+              <Sparkles size={24} />
+              <span>{t('findEpiphany')}</span>
+          </button>
           <p className="text-center text-xs text-slate-400 mt-3">{t('requiresClarity', {cost: FOCUS_COST})}</p>
         </div>
       </main>
+
+      {/* FIX: Render the ConversationView when isConversing is true. */}
+      {isConversing && <ConversationView onClose={() => setIsConversing(false)} />}
 
       {gameState === GameState.REVEAL && currentEcho && (<EchoCard echo={currentEcho} isNew={true} onClose={() => setGameState(GameState.IDLE)} />)}
       {gameState === GameState.COLLECTION && (

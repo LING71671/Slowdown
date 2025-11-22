@@ -14,18 +14,16 @@ export const translations = {
     yourJournal: 'Your Journal',
     noEchoes: 'No echoes found yet.',
     noEchoesSub: 'Breathe, focus, and find your first epiphany.',
-    talkToGuide: 'Talk with a Guide',
     // EchoCard.tsx
     newDiscovery: 'New Discovery',
     shareWisdom: 'Share Wisdom',
     copied: 'Copied to clipboard!',
-    // ConversationView.tsx
-    guideTitle: 'Your Guide is Listening',
-    guideSubtitle: 'Speak freely, the space is yours.',
+    // FIX: Add translations for ConversationView
+    guideTitle: 'Speak with your Guide',
+    guideSubtitle: 'Your AI companion is listening. Share your thoughts.',
     endConversation: 'End Conversation',
-    connecting: 'Connecting to the quiet place...',
-    // AI
-    systemInstruction: "You are a calm, wise, and empathetic guide in a relaxation game called 'Mindful Echoes'. Your voice is gentle and soothing. Your purpose is to help the user relax, reflect, and find moments of peace. Keep your responses concise, comforting, and encouraging. Ask gentle questions to prompt reflection, but don't be demanding. You are a safe space for them to speak their mind.",
+    connecting: 'Connecting...',
+    systemInstruction: 'You are a wise and empathetic psychological guide in a relaxation game. Your name is Kai. Respond to the user with warmth, encouragement, and gentle wisdom. Keep your responses concise and soothing. Your goal is to help the user feel calm and understood.',
   },
   zh: {
     // App.tsx
@@ -42,17 +40,15 @@ export const translations = {
     yourJournal: '你的日志',
     noEchoes: '尚未发现任何回响。',
     noEchoesSub: '呼吸，专注，找到你的第一个顿悟。',
-    talkToGuide: '与向导交谈',
     // EchoCard.tsx
     newDiscovery: '新发现',
     shareWisdom: '分享智慧',
     copied: '已复制到剪贴板！',
-    // ConversationView.tsx
-    guideTitle: '你的向导正在倾听',
-    guideSubtitle: '自由地倾诉，这里是属于你的空间。',
+    // FIX: Add translations for ConversationView
+    guideTitle: '与你的向导交谈',
+    guideSubtitle: '你的AI伙伴正在倾听。分享你的想法。',
     endConversation: '结束对话',
-    connecting: '正在连接到宁静之地...',
-    // AI
-    systemInstruction: "你是一个名为'心灵回响'的放松游戏中的冷静、智慧且富有同情心的向导。你的声音温柔而舒缓。你的目的是帮助用户放松、反思，并找到片刻的宁静。保持你的回答简洁、安慰和鼓励。提出温和的问题以促进反思，但不要强求。你是一个他们可以畅所欲言的安全空间。",
+    connecting: '连接中...',
+    systemInstruction: '你是一款放松游戏中的智慧而富有同情心的心理向导。你的名字是凯。以温暖、鼓励和温柔的智慧回应用户。保持你的回答简洁而舒缓。你的目标是帮助用户感到平静和被理解。',
   }
 };

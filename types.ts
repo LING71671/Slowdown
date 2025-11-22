@@ -3,7 +3,6 @@ export enum GameState {
   GENERATING = 'GENERATING',
   REVEAL = 'REVEAL',
   COLLECTION = 'COLLECTION',
-  CONVERSING = 'CONVERSING'
 }
 
 export interface Echo {
@@ -25,6 +24,7 @@ export interface PlayerStats {
 
 export type Language = 'en' | 'zh';
 
+// FIX: Add TranscriptEntry interface for ConversationView.
 export interface TranscriptEntry {
   id: string;
   speaker: 'user' | 'ai';

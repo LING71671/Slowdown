@@ -1,6 +1,5 @@
-import { GoogleGenAI, Type, LiveServerMessage, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Blob, LiveCallbacks, LiveSession, Modality } from "@google/genai";
 import { Echo } from '../types';
-import { createBlob, decode, decodeAudioData } from '../utils/audio';
 
 // Creates a new AI client instance.
 // This function is designed to be called right before an API request
@@ -8,7 +7,7 @@ import { createBlob, decode, decodeAudioData } from '../utils/audio';
 const createAiClient = (): GoogleGenAI => {
   try {
     // This will throw an error if process.env.API_KEY is not available,
-    // which is caught by the calling functions (generateSoulEcho, startVoiceSession).
+    // which is caught by the calling functions (generateSoulEcho).
     return new GoogleGenAI({ apiKey: process.env.API_KEY });
   } catch (error) {
     console.error("FATAL: Failed to initialize GoogleGenAI. Ensure the API_KEY is correctly set in your environment and exposed to the client-side build.", error);
@@ -65,45 +64,76 @@ export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 
   }
 };
 
+// --- Live API Functions ---
 
-// --- Live API for Voice Conversation ---
-
-interface VoiceSessionCallbacks {
-  onMessage: (message: LiveServerMessage) => Promise<void>;
-  onOpen: () => void;
-  onError: (error: ErrorEvent) => void;
-  onClose: (event: CloseEvent) => void;
+// FIX: Implement encode function for audio data as per guidelines. Not exported.
+function encode(bytes: Uint8Array) {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
-export const startVoiceSession = (
-  systemInstruction: string,
-  callbacks: VoiceSessionCallbacks
-) => {
-  try {
-    const client = createAiClient();
-    return client.live.connect({
-      model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-      callbacks: {
-        onopen: callbacks.onOpen,
-        onmessage: callbacks.onMessage,
-        onerror: callbacks.onError,
-        onclose: callbacks.onClose,
-      },
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
-        },
-        inputAudioTranscription: {},
-        outputAudioTranscription: {},
-        systemInstruction,
-      },
-    });
-  } catch (error) {
-    // If createAiClient throws, we catch it here and return a rejected promise
-    // to be handled by the calling component (ConversationView).
-    return Promise.reject(error);
+// FIX: Implement and export decode function for audio data as per guidelines.
+export function decode(base64: string) {
+  const binaryString = atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
   }
-};
+  return bytes;
+}
 
-export { decode, decodeAudioData, createBlob };
+// FIX: Implement and export decodeAudioData function as per guidelines.
+export async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
+// FIX: Implement and export createBlob function as per guidelines.
+export function createBlob(data: Float32Array): Blob {
+  const l = data.length;
+  const int16 = new Int16Array(l);
+  for (let i = 0; i < l; i++) {
+    int16[i] = data[i] * 32768;
+  }
+  return {
+    data: encode(new Uint8Array(int16.buffer)),
+    mimeType: 'audio/pcm;rate=16000',
+  };
+}
+
+// FIX: Implement and export startVoiceSession to connect to the Live API.
+export const startVoiceSession = (systemInstruction: string, callbacks: LiveCallbacks): Promise<LiveSession> => {
+  const client = createAiClient();
+  return client.live.connect({
+    model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+    callbacks: callbacks,
+    config: {
+      responseModalities: [Modality.AUDIO],
+      inputAudioTranscription: {},
+      outputAudioTranscription: {},
+      speechConfig: {
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+      },
+      systemInstruction: systemInstruction,
+    },
+  });
+};
