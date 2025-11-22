@@ -2,25 +2,19 @@ import { GoogleGenAI, Type, LiveServerMessage, Modality } from "@google/genai";
 import { Echo } from '../types';
 import { createBlob, decode, decodeAudioData } from '../utils/audio';
 
-// Lazily initialize the AI client to prevent startup crashes.
-let ai: GoogleGenAI | null = null;
-let aiInitializationError: Error | null = null;
-
-const getAiClient = (): GoogleGenAI => {
-  if (aiInitializationError) {
-    throw aiInitializationError;
+// Creates a new AI client instance.
+// This function is designed to be called right before an API request
+// to ensure the latest user-selected API key from the environment is used.
+const createAiClient = (): GoogleGenAI => {
+  try {
+    // This will throw an error if process.env.API_KEY is not available,
+    // which is caught by the calling functions (generateSoulEcho, startVoiceSession).
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  } catch (error) {
+    console.error("FATAL: Failed to initialize GoogleGenAI. Ensure the API_KEY is correctly set in your environment and exposed to the client-side build.", error);
+    // Re-throw a more user-friendly error to be caught by UI components.
+    throw new Error("AI Service could not be initialized. Please verify your API key configuration and ensure it's accessible to the application.");
   }
-  if (!ai) {
-    try {
-      // This will fail if process.env.API_KEY is not available in the browser.
-      ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    } catch (error) {
-      console.error("FATAL: Failed to initialize GoogleGenAI. Ensure the API_KEY is correctly set in your environment and exposed to the client-side build.", error);
-      aiInitializationError = new Error("AI Service could not be initialized. Please verify your API key configuration and ensure it's accessible to the application.");
-      throw aiInitializationError;
-    }
-  }
-  return ai;
 };
 
 export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 'id' | 'dateCollected'>> => {
@@ -34,7 +28,7 @@ export const generateSoulEcho = async (playerLevel: number): Promise<Omit<Echo, 
   `;
 
   try {
-    const client = getAiClient();
+    const client = createAiClient();
     const response = await client.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -86,7 +80,7 @@ export const startVoiceSession = (
   callbacks: VoiceSessionCallbacks
 ) => {
   try {
-    const client = getAiClient();
+    const client = createAiClient();
     return client.live.connect({
       model: 'gemini-2.5-flash-native-audio-preview-09-2025',
       callbacks: {
@@ -106,7 +100,7 @@ export const startVoiceSession = (
       },
     });
   } catch (error) {
-    // If getAiClient throws, we catch it here and return a rejected promise
+    // If createAiClient throws, we catch it here and return a rejected promise
     // to be handled by the calling component (ConversationView).
     return Promise.reject(error);
   }
